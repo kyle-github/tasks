@@ -1,0 +1,197 @@
+I want to generate code for protothreads.   The input will be a file that looks something like
+this:
+
+```c
+#include <protothread.h>
+#include <stdio.h>
+
+protothread int int_generator(int lower_bound, int upper_bound) {
+    int val = 0;
+    int count = 0;
+
+    for(val = lower_bound; val <= upper_bound; val++) {
+        pt_yield_result(val);
+        printf("Result $%d = %d\n", ++count, val);
+    }
+}
+
+protothread char string_iterator(const char *str) {
+    size_t len = strlen(str);
+
+    for(size_t index; index < len; index++) {
+        pt_yield_result(str[index]);
+    }
+}
+
+
+int main(void) {
+    int lower_bound = 5;
+    int upper_bound = 15;
+
+    int_generator *gen = new_int_generator(low_bound, upper_bound);
+    if(!gen) {
+        printf("ERROR!  Unable to create new int_generator!");
+        return -1;
+    }
+
+    do {
+        pt_resume(gen);
+
+        printf("Got value %d from generator\n", pt_result(gen))
+    } while(pt_status(gen) == PT_RUNNING);
+
+    pt_join(gen);
+
+    string_iterator *iter = new_string_iterator("Hello, world!");
+    if(!iter){
+        printf("ERROR! Unable to create new string iterator!\n");
+        return -1
+    }
+
+    do {
+        pt_resume(iter);
+        printf("Got char '%c' from string iterator.\n", pt_result(gen));
+    }
+
+    pt_join(iter);
+}
+```
+
+The output looks close to the following:
+
+```c
+/* the following:
+
+protothread int int_generator(int lower_bound, int upper_bound) {
+    int count = 0;
+    int val = 0;
+
+    for(val = lower_bound; val <= upper_bound; val++) {
+        pt_yield_result(val);
+        printf("Result $%d = %d\n", ++count, val);
+    }
+}
+
+turns into the definitions below:
+*/
+
+typedef struct {
+    int step;
+    int status;
+} int_generator_pt_state;
+
+typedef struct {
+    int lower_bound;
+    int upper_bound;
+} int_generator_args;
+
+typedef struct {
+    int count;
+    int val;
+} int_generator_vars;
+
+typdef struct int_generator int_generator;
+
+struct int_generator {
+    int_generator_pt_state state;
+
+    int_generator_args args;
+
+    int_generator_vars vars;
+
+    int result;
+
+    int (*run)(int_generator_pt_state *state, int_generator_args *args, int_generator_vars *vars, int *result);
+    void (*destroy)(int_generator_args *args, int_generator_vars *vars, int *result);
+};
+
+
+static int int_generator_run_func(int_generator_pt_state *state, int_generator_args *args, int_generator_vars *vars, int *result);
+static void int_generator_destroy_func(int_generator_args *args, int_generator_vars *vars, int *result);
+
+int_generator *new_int_generator(int lower_bound, int upper_bound) {
+    int_generator *pt_context = (int_generator *)malloc(sizeof(int_generator));
+
+    if(!pt_context) {
+        return NULL;
+    }
+
+    memset(pt_context, 0, sizeof(*pt_context));
+
+    pt_context->pt.step = PT_START;
+    pt_context->pt.status = PT_SUSPENDED;
+    pt_context->args.lower_bound = lower_bound;
+    pt_context->args.upper_bound = upper_bound;
+    pt_context->run = int_generator_run_func;
+    pt_context->destroy = int_generator_destroy_func;
+
+    return pt_context;
+}
+
+void int_generator_run_func(int_generator_pt_state *state, int_generator_args *args, int_generator_vars *vars, int *result) {
+    switch(state->step) {
+        case PT_START:
+            vars->count = 0;
+            vars->val = 0;
+
+            for(vars->val = args->lower_bound, vars->val <= args->upper_bound; ++vars->val) {
+                *result = vars->val;
+                state->step = 138; /* value from the __LINE__ macro */
+                state->status = PT_SUSPENDED;
+                break;
+                case 138:
+            }
+            break;
+
+        default: /* handle erroneous step */
+            printf("ERROR! Unknown step %d!", state->step);
+            state->status = PT_ERROR;
+            break;
+    }
+}
+
+void int_generator_destroy
+
+/*
+protothread char string_iterator(const char *str) {
+    size_t len = strlen(str);
+
+    for(size_t index; index < len; index++) {
+        pt_yield_result(str[index]);
+    }
+}
+*/
+
+
+int main(void) {
+    int lower_bound = 5;
+    int upper_bound = 15;
+
+    int_generator *gen = new_int_generator(low_bound, upper_bound);
+    if(!gen) {
+        printf("ERROR!  Unable to create new int_generator!");
+        return -1;
+    }
+
+    do {
+        pt_resume(gen);
+
+        printf("Got value %d from generator\n", pt_result(gen))
+    } while(pt_status(gen) == PT_RUNNING);
+
+    pt_join(gen);
+
+    string_iterator *iter = new_string_iterator("Hello, world!");
+    if(!iter){
+        printf("ERROR! Unable to create new string iterator!\n");
+        return -1
+    }
+
+    do {
+        pt_resume(iter);
+        printf("Got char '%c' from string iterator.\n", pt_result(gen));
+    }
+
+    pt_join(iter);
+}
+```
