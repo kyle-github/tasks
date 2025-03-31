@@ -50,7 +50,10 @@ int threadlet_create(threadlet **t, threadlet_func t_func, void *data) {
     char stack[STACK_FRAME_SIZE];
     (void)stack; /* Suppress unused variable warnings */
 
-    if(setjmp((*t)->context) == 0) { longjmp(main_context, 1); }
+    if(setjmp((*t)->context) == 0) {
+        printf("Going for the longjmp() in the create() function");
+        longjmp(main_context, 1);
+    }
 
     threadlet_trampoline(*t);
 
@@ -61,8 +64,10 @@ int threadlet_create(threadlet **t, threadlet_func t_func, void *data) {
 int threadlet_yield(void) {
     if(!current_threadlet) { return -1; }
 
-
-    if(setjmp(current_threadlet->context) == 0) { longjmp(main_context, 1); /* Return to the main context */ }
+    if(setjmp(current_threadlet->context) == 0) {
+        printf("Going for the longjmp() in the yield() function");
+        longjmp(main_context, 1); /* Return to the main context */
+    }
 
     return 0;
 }
